@@ -11,14 +11,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          fetch-depth: 2
+          fetch-depth: 4
       - name: Bind the production source under test
         run: |
-          test "$(git rev-parse HEAD^)" = '9d68589dd2df0eaad3389babcfc910ac7b73dab6'
-          git diff --quiet '9d68589dd2df0eaad3389babcfc910ac7b73dab6' HEAD -- . ':!.github/workflows/**'
+          git merge-base --is-ancestor '9d68589dd2df0eaad3389babcfc910ac7b73dab6' HEAD
+          git diff --quiet '9d68589dd2df0eaad3389babcfc910ac7b73dab6' HEAD -- . ':!.github/workflows/**' ':!packages/appium/lib/bootstrap/main-helpers.ts'
+          echo '58d3651efb8f1fdab13b65dbd858ba3a00b54cade4e841a56471902253d1dce3  packages/appium/lib/bootstrap/main-helpers.ts' | sha256sum --check
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: 22.22.0
+          node-version: 22.22.2
           package-manager-cache: false
       - name: Install locked dependencies without lifecycle scripts
         run: npm ci --ignore-scripts
