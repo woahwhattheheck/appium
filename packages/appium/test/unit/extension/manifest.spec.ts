@@ -489,7 +489,14 @@ describe('Manifest', function () {
       });
 
       describe('when a dependency is declared in APPIUM_HOME package.json but not found by glob', function () {
+        let resolveStub: any;
         beforeEach(function () {
+          const Module = require('node:module');
+          resolveStub = sandbox.stub(Module, '_resolveFilename').callsFake((request: string, parent: any, isMain: boolean, options: any) => {
+            if (request === 'yaml/package.json') return '/some/path/node_modules/yaml/package.json';
+            return resolveStub.wrappedMethod.call(Module, request, parent, isMain, options);
+          });
+
           MockAppiumSupport.fs.readFile.callsFake(async (filepath: string) => {
             if (filepath.endsWith('package.json') && !filepath.includes('yaml')) {
               return JSON.stringify({
@@ -514,7 +521,7 @@ describe('Manifest', function () {
 
         it('should discover the driver via module resolution', async function () {
           await manifest.syncWithInstalledExtensions();
-          assert.ok(Object.hasOwn(manifest.getExtensionData(DRIVER_TYPE), 'yamlDriver'));
+          assert.ok('yamlDriver' in manifest.getExtensionData(DRIVER_TYPE));
         });
       });
 

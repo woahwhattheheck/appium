@@ -223,7 +223,11 @@ export class Manifest {
         devDependencies?: Record<string, string>;
         peerDependencies?: Record<string, string>;
       };
-      const deps = Object.keys({...pkg?.dependencies, ...pkg?.devDependencies, ...pkg?.peerDependencies});
+      const deps = Object.keys({
+        ...(pkg?.dependencies || {}),
+        ...(pkg?.devDependencies || {}),
+        ...(pkg?.peerDependencies || {})
+      });
       for (const dep of deps) {
         try {
           const depPkgPath = require.resolve(`${dep}/package.json`, {paths: [this.#appiumHome]});
