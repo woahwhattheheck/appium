@@ -1,0 +1,33 @@
+name: Focused universal XML context acceptance ZT9
+on:
+  push:
+    branches: ['validation/appium21630-context-20261009-zt9']
+permissions:
+  contents: read
+jobs:
+  universal-context:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Verify exact context feature source
+        run: |
+          git merge-base --is-ancestor 2c4f2da887728bdf837069a84aff09af862fe7d8 HEAD
+          git diff --quiet 2c4f2da887728bdf837069a84aff09af862fe7d8 HEAD -- . ':!.github/workflows/focused-appium21630-zt9.yml'
+          test "$(git hash-object packages/universal-xml-plugin/lib/plugin.ts)" = 8df1dc9f12626a96bf8ca8a18fc32e036a829bb2
+          test "$(git hash-object packages/universal-xml-plugin/test/unit/context.spec.ts)" = cbec9355501177767e7234e3b49c73766d2ee392
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.22.2
+          package-manager-cache: false
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Compile the plugin and its Appium dependency
+        run: npx --no-install tsc -b packages/appium packages/universal-xml-plugin
+      - name: Run only the affected plugin routing cases
+        working-directory: packages/universal-xml-plugin
+        run: |
+          node --test --enable-source-maps --test-concurrency=1 --test-timeout=5000 --test-reporter=tap ./build/test/unit/plugin.spec.js ./build/test/unit/context.spec.js
