@@ -10,10 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: 4eef458fa2b6a2dcc326a99561347ecc0c7490f7
+          ref: 44b946dd41bc065297cb901e5333ba9d409623cf
           persist-credentials: false
       - name: Bind exact source version
-        run: test "$(git rev-parse HEAD)" = '4eef458fa2b6a2dcc326a99561347ecc0c7490f7'
+        run: test "$(git rev-parse HEAD)" = '44b946dd41bc065297cb901e5333ba9d409623cf'
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 22.22.2
