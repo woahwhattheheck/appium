@@ -1,0 +1,34 @@
+name: Focused Appium 13492 protocol validation
+on:
+  push:
+    branches: ['validation/13492-test-run']
+permissions:
+  contents: read
+jobs:
+  protocol-disconnect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 4eef458fa2b6a2dcc326a99561347ecc0c7490f7
+          persist-credentials: false
+      - name: Bind exact source version
+        run: test "$(git rev-parse HEAD)" = '4eef458fa2b6a2dcc326a99561347ecc0c7490f7'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.22.2
+          package-manager-cache: false
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Compile the changed package and referenced dependencies
+        run: npx --no-install tsc -b packages/base-driver
+      - name: Run only the seven new disconnect behavior cases
+        working-directory: packages/base-driver
+        run: |
+          set +e
+          node --test --experimental-test-module-mocks --test-concurrency=1 --enable-source-maps --test-timeout=5000 --test-reporter=tap --test-name-pattern='isClientDisconnected|aborted request & orphan session cleanup' ./build/test/unit/protocol/protocol.spec.js 2>&1 | tee focused-protocol.log
+          result=${PIPESTATUS[0]}
+          set -e
+          test "$result" -eq 0
+          grep -Eq '^# pass [1-9][0-9]*$' focused-protocol.log
+          grep -Eq '^# fail 0$' focused-protocol.log
