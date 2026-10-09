@@ -1,0 +1,29 @@
+name: Focused resolved-driver validation
+on:
+  push:
+    branches: ['validation/appium22923-resolved-drivers-20261008']
+permissions:
+  contents: read
+jobs:
+  resolved-drivers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Bind the production source under test
+        run: |
+          test "$(git rev-parse HEAD^)" = '9d68589dd2df0eaad3389babcfc910ac7b73dab6'
+          git diff --quiet '9d68589dd2df0eaad3389babcfc910ac7b73dab6' HEAD -- . ':!.github/workflows/**'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.22.0
+          package-manager-cache: false
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Compile the touched package and required test fixtures
+        run: npx --no-install tsc -b packages/appium packages/relaxed-caps-plugin packages/fake-driver
+      - name: Run only the current resolved-driver behavior cases
+        working-directory: packages/appium
+        run: node --test --experimental-test-module-mocks --test-concurrency=1 --enable-source-maps --test-timeout=5000 ./build/test/unit/extension/resolved-driver.spec.js
