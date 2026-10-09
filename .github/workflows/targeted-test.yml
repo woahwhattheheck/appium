@@ -1,0 +1,13 @@
+name: Targeted Run 19819
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+      - run: npm ci --ignore-scripts
+      - run: npx --no-install tsc -b packages/appium packages/relaxed-caps-plugin packages/fake-driver
+      - run: node --test --experimental-test-module-mocks --test-concurrency 1 --test-name-pattern="APPIUM_HOME package.json but not found by glob" packages/appium/build/test/unit/extension/manifest.spec.js
