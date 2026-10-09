@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {promises as fs} from 'node:fs';
+import path from 'node:path';
 import {describe, it, beforeEach, afterEach, before} from 'node:test';
 
 import type {DriverType, PluginType} from '@appium/types';
@@ -490,10 +491,13 @@ describe('Manifest', function () {
 
       describe('when a dependency is declared in APPIUM_HOME package.json but not found by glob', function () {
         beforeEach(function () {
+          const installedPackage = require.resolve('yaml/package.json');
+          const hoistedModules = path.dirname(path.dirname(installedPackage));
+          manifest = Manifest.getInstance(path.join(hoistedModules, 'workspace'));
           MockAppiumSupport.fs.readFile.callsFake(async (filepath: string) => {
             if (filepath.endsWith('package.json') && !filepath.includes('yaml')) {
               return JSON.stringify({
-                dependencies: { 'yaml': '2.0.0' }
+                dependencies: {yaml: '2.0.0'},
               });
             }
             if (filepath.includes('yaml/package.json')) {
@@ -503,8 +507,10 @@ describe('Manifest', function () {
                 appium: {
                   automationName: 'yaml',
                   mainClass: 'SomeClass',
-                  driverName: 'yamlDriver'
-                }
+                  driverName: 'yamlDriver',
+                  platformNames: ['test'],
+                },
+                peerDependencies: {appium: APPIUM_VER},
               });
             }
             return '{}';
