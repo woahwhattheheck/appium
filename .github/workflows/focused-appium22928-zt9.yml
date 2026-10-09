@@ -12,13 +12,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          fetch-depth: 2
-      - name: Verify the unchanged original PR source
+          fetch-depth: 3
+      - name: Verify the exact test-only candidate source
         run: |
-          git merge-base --is-ancestor aed38383eeb0749611e530f1ad5301ae070c10a0 HEAD
-          git diff --quiet aed38383eeb0749611e530f1ad5301ae070c10a0 HEAD -- . ':!.github/workflows/focused-appium22928-zt9.yml'
+          git merge-base --is-ancestor 6aff768a1feadfb5f29428e8aa204cd2b87f0b9e HEAD
+          git diff --quiet 6aff768a1feadfb5f29428e8aa204cd2b87f0b9e HEAD -- . ':!.github/workflows/focused-appium22928-zt9.yml'
           test "$(git hash-object packages/appium/lib/extension/manifest.ts)" = 03348719662c9f2111d22e16beb444fc0601bcc4
-          test "$(git hash-object packages/appium/test/unit/extension/manifest.spec.ts)" = 0b6e3e0e463e67ea10b44a2f9339a2e36b280e98
+          test "$(git hash-object packages/appium/test/unit/extension/manifest.spec.ts)" = c8874157cc3e25d870b34a03c11f0889063b0bdb
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 22.22.2
