@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {promises as fs} from 'node:fs';
+import path from 'node:path';
 import {describe, it, beforeEach, afterEach, before} from 'node:test';
 
 import type {DriverType, PluginType} from '@appium/types';
@@ -486,6 +487,41 @@ describe('Manifest', function () {
       it('should add a found extension', async function () {
         await manifest.syncWithInstalledExtensions();
         assert.ok(Object.hasOwn(manifest.getExtensionData(DRIVER_TYPE), 'myDriver'));
+      });
+
+      describe('when a dependency is declared in APPIUM_HOME package.json but not found by glob', function () {
+        beforeEach(function () {
+          const installedPackage = require.resolve('yaml/package.json');
+          const hoistedModules = path.dirname(path.dirname(installedPackage));
+          manifest = Manifest.getInstance(path.join(hoistedModules, 'workspace'));
+          MockAppiumSupport.fs.readFile.callsFake(async (filepath: string) => {
+            if (filepath.endsWith('package.json') && !filepath.includes('yaml')) {
+              return JSON.stringify({
+                dependencies: {yaml: '2.0.0'},
+              });
+            }
+            if (filepath.includes('yaml/package.json')) {
+              return JSON.stringify({
+                name: 'yaml',
+                version: '2.0.0',
+                appium: {
+                  automationName: 'yaml',
+                  mainClass: 'SomeClass',
+                  driverName: 'yamlDriver',
+                  platformNames: ['test'],
+                },
+                peerDependencies: {appium: APPIUM_VER},
+              });
+            }
+            return '{}';
+          });
+          MockAppiumSupport.fs.glob.resolves([]);
+        });
+
+        it('should discover the driver via module resolution', async function () {
+          await manifest.syncWithInstalledExtensions();
+          assert.ok(Object.hasOwn(manifest.getExtensionData(DRIVER_TYPE), 'yamlDriver'));
+        });
       });
 
       describe('when the underlying implementation emits "error"', function () {

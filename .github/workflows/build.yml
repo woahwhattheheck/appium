@@ -1,44 +1,6 @@
 name: Appium Build
 on:
-  push:
-    branches:
-      - master
-    # this list of paths could potentially impact the build
-    paths:
-      - '**/tsconfig*.json'
-      - 'packages/base-driver/test-fixtures/**/*'
-      - 'packages/*/test/**'
-      - 'packages/*/bin'
-      - 'packages/**/*.ts'
-      - 'packages/**/*.json'
-      - 'packages/**/*.js'
-      - 'package*.json'
-      - 'lerna.json'
-      - '.npmrc'
-      - '.github/workflows/build.yml' # this file
-      - 'oxlint.config.mjs'
-      - 'oxfmt.config.mjs'
-      - '!**/sample-code/**'
-      - '!packages/*/docs/**'
-  pull_request:
-    branches:
-      - master
-    paths:
-      - '**/tsconfig*.json'
-      - 'packages/base-driver/test-fixtures/**/*'
-      - 'packages/*/test/**'
-      - 'packages/*/bin'
-      - 'packages/**/*.ts'
-      - 'packages/**/*.json'
-      - 'packages/**/*.js'
-      - 'package*.json'
-      - 'lerna.json'
-      - '.npmrc'
-      - '.github/workflows/build.yml' # this file
-      - 'oxlint.config.mjs'
-      - 'oxfmt.config.mjs'
-      - '!**/sample-code/**'
-      - '!packages/*/docs/**'
+  workflow_dispatch:
 
 env:
   CI: true
