@@ -26,6 +26,10 @@ export {JWProxy as WebDriverProxy} from './jsonwp-proxy/proxy';
 // jsonwp-status exports
 export {codes as statusCodes, getSummaryByCode} from './jsonwp-status/status';
 
+// Offline diagnostics for driver-author capability assertions
+export {diagnoseCaps} from './basedriver/capability-diagnostics';
+export type {CapabilityDiagnostic, CapabilityDiagnosis} from './basedriver/capability-diagnostics';
+
 // W3C capabilities parser
 export {
   isStandardCap,
