@@ -1011,3 +1011,35 @@ To see examples of IPC in action, check out Appium's own
 [FakeDriver](https://github.com/appium/appium/blob/master/packages/fake-driver/lib/driver.ts) and
 [FakePlugin](https://github.com/appium/appium/blob/master/packages/fake-plugin/lib/plugin.ts)
 extensions, which showcase several ways of using IPC messages.
+
+## Test capability constraints without starting a session
+
+Driver authors can use the exported `diagnoseCaps` function from
+`@appium/base-driver` to assert which supplied capability values fail driver
+constraints, **including values which Appium would otherwise only warn about**.
+The function accepts a single-level object of capabilities; resolve
+`alwaysMatch`/`firstMatch` envelopes before calling it. It does not create a
+session or throw for malformed capability values.
+
+```ts
+import {diagnoseCaps} from '@appium/base-driver';
+
+const constraints = {
+  deviceName: {isString: true},
+  myDriverSetting: {isBoolean: true},
+};
+const report = diagnoseCaps(
+  {'appium:deviceName': 10, 'appium:myDriverSetting': false, 'unknownCap': 'x'},
+  constraints,
+);
+
+// report.valid === false (the deviceName string constraint failed)
+// report.errors includes {capability: 'deviceName', message: 'must be of type string'}
+// report.warnings includes {capability: 'unknownCap', message: 'capability has no declared validation constraint'}
+```
+
+Unknown names are warnings, not validation failures. A driver test can assert on
+`report.warnings` to detect missing or accidentally removed constraints. Known
+standard WebDriver and base driver capabilities are not marked unknown. The
+`skipPresenceConstraint` option matches the existing `validateCaps` convention;
+regular capability processing and session creation remain unchanged.
