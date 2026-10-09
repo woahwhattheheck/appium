@@ -7,6 +7,57 @@ import type {TransformMetadata} from './types.js';
 import {transformQuery} from './xpath.js';
 
 export class UniversalXMLPlugin extends BasePlugin {
+  // An opt-in virtual context; the underlying driver remains in NATIVE_APP.
+  // A WeakMap avoids cross-driver and cross-session leakage without any global setting.
+  private readonly xmlContext = new WeakMap<ExternalDriver, {
+    sessionId: string | null;
+    mode: 'native' | 'universal';
+  }>();
+
+  private getMode(driver: ExternalDriver): 'native' | 'universal' | undefined {
+    const record = this.xmlContext.get(driver);
+    return record && record.sessionId === (driver.sessionId ?? null) ? record.mode : undefined;
+  }
+
+  private setMode(driver: ExternalDriver, mode: 'native' | 'universal'): void {
+    this.xmlContext.set(driver, {sessionId: driver.sessionId ?? null, mode});
+  }
+
+  async getContexts(next: NextPluginCallback, driver: ExternalDriver): Promise<string[]> {
+    const contexts = (await next()) as string[];
+    // Context enumeration advertises the synthetic view only when native is supported.
+    return contexts.includes('NATIVE_APP') && !contexts.includes('universal-xml')
+      ? [...contexts, 'universal-xml'] : contexts;
+  }
+
+  async getCurrentContext(next: NextPluginCallback, driver: ExternalDriver): Promise<string> {
+    const actual = (await next()) as string;
+    if (actual !== 'NATIVE_APP') {
+      this.xmlContext.delete(driver);
+      return actual;
+    }
+    return this.getMode(driver) === 'universal' ? 'universal-xml' : actual;
+  }
+
+  async setContext(next: NextPluginCallback, driver: ExternalDriver, name: string): Promise<void> {
+    if (name === 'universal-xml') {
+      // Never ask the actual driver to enter a fictitious context; WebViews stay real.
+      if (!driver.getCurrentContext || (await driver.getCurrentContext()) !== 'NATIVE_APP') {
+        throw new errors.NoSuchContextError();
+      }
+      this.setMode(driver, 'universal');
+      return;
+    }
+    // Underlying driver validates all non-virtual names. Do not change state on failure.
+    await next();
+    if (name === 'NATIVE_APP') this.setMode(driver, 'native');
+    else this.xmlContext.delete(driver);
+  }
+
+  async deleteSession(next: NextPluginCallback, driver: ExternalDriver): Promise<unknown> {
+    try { return await next(); }
+    finally { this.xmlContext.delete(driver); }
+  }
   async getPageSource(
     next: NextPluginCallback | null,
     driver: ExternalDriver,
@@ -15,6 +66,12 @@ export class UniversalXMLPlugin extends BasePlugin {
   ): Promise<string> {
     void sessId;
     const source = (next ? await next() : await driver.getPageSource()) as string;
+    // Explicitly selected native context exposes unmodified page source, for OCR,
+    // element clicks, and all ordinary platform-native automation.
+    if (this.getMode(driver) === 'native' ||
+        (driver.getCurrentContext && (await driver.getCurrentContext()) !== 'NATIVE_APP')) {
+      return source;
+    }
     const metadata: TransformMetadata = {};
     const platformName = getPlatformName(driver);
     if (platformName.toLowerCase() === 'android') {
@@ -83,6 +140,7 @@ export class UniversalXMLPlugin extends BasePlugin {
     selector: string,
   ): Promise<Element | Element[]> {
     if (
+      this.getMode(driver) === 'native' ||
       strategy.toLowerCase() !== 'xpath' ||
       !driver.getCurrentContext ||
       (await driver.getCurrentContext()) !== 'NATIVE_APP'
