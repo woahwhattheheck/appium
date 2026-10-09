@@ -1,0 +1,34 @@
+name: Focused Appium 19819 manifest validation
+on:
+  push:
+    branches: ['test-pr-22928-ci']
+permissions:
+  contents: read
+jobs:
+  hoisted-dependency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: aed38383eeb0749611e530f1ad5301ae070c10a0
+          persist-credentials: false
+      - name: Bind exact source version
+        run: test "$(git rev-parse HEAD)" = 'aed38383eeb0749611e530f1ad5301ae070c10a0'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.22.2
+          package-manager-cache: false
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Compile the changed package and required test fixtures
+        run: npx --no-install tsc -b packages/appium packages/relaxed-caps-plugin packages/fake-driver
+      - name: Run only the new hoisted dependency regression
+        working-directory: packages/appium
+        run: |
+          set +e
+          node --test --experimental-test-module-mocks --test-concurrency=1 --enable-source-maps --test-timeout=5000 --test-reporter=tap --test-name-pattern='when a dependency is declared in APPIUM_HOME package.json but not found by glob' ./build/test/unit/extension/manifest.spec.js 2>&1 | tee focused-manifest.log
+          result=${PIPESTATUS[0]}
+          set -e
+          test "$result" -eq 0
+          grep -Eq '^# pass [1-9][0-9]*$' focused-manifest.log
+          grep -Eq '^# fail 0$' focused-manifest.log
