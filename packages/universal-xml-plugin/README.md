@@ -1,3 +1,10 @@
+> **SUPERSEDED EXPERIMENTAL BRANCH — DO NOT OPEN AN UPSTREAM PR FOR #21630.**
+> Upstream Appium [PR #22862](https://github.com/appium/appium/pull/22862)
+> was merged into `appium4` on October 5, 2026, and already addresses issue #21630
+> using the maintainer-reviewed `universalXml: setEnabled` / `isEnabled` extension methods.
+> This branch's virtual-context prototype was independently developed against old
+> `master`, was not submitted to upstream, and is not a new payable contribution.
+
 # @appium/universal-xml-plugin
 
 > Appium plugin for transforming platform-specific XML into a universal syntax
